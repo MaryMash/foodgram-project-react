@@ -8,19 +8,6 @@ class CustomUser(AbstractUser):
         verbose_name='email',
         unique=True
     )
-    username = models.CharField(
-        max_length=150,
-        verbose_name='username',
-        unique=True
-    )
-    first_name = models.CharField(
-        max_length=150,
-        verbose_name='first_name'
-    )
-    last_name = models.CharField(
-        max_length=150,
-        verbose_name='first_name'
-    )
 
     class Meta:
         ordering = ('username',)

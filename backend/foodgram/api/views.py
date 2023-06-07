@@ -1,43 +1,44 @@
-from djoser import utils
-from djoser.conf import settings
+from django_filters.rest_framework import DjangoFilterBackend
 from djoser.serializers import SetPasswordSerializer
-from rest_framework import generics, status, viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import (AllowAny, IsAuthenticated,
+                                        IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
+
+from recipes.models import Ingredient, Recipe, Tag, RecipeIngredient
 from users.models import CustomUser
 
+from .filters import RecipeFilter
 from .paginators import CustomPagination
-from .serializers import CustomUserSerializer
+from .permissions import AuthorOrReadOnly
+from .serializers import (CustomUserCreateSerializer, CustomUserSerializer,
+                          IngredientSerializer, RecipeCreateSerializer,
+                          RecipeSerializer, TagSerializer, CreateRecipeIngredientSerializer)
 
 
-class CustomTokenCreateView(utils.ActionViewMixin, generics.GenericAPIView):
-    """Получение токена"""
-
-    serializer_class = settings.SERIALIZERS.token_create
-    permission_classes = settings.PERMISSIONS.token_create
-
-    def _action(self, serializer):
-        token = utils.login_user(self.request, serializer.user)
-        token_serializer_class = settings.SERIALIZERS.token
-        return Response(
-            data=token_serializer_class(token).data,
-            status=status.HTTP_201_CREATED
-        )
+class TestView(viewsets.ModelViewSet):
+    queryset = Recipe.objects.all()
+    permission_classes = [AllowAny]
+    serializer_class = CreateRecipeIngredientSerializer
 
 
 class CustomUserViewSet(viewsets.ModelViewSet):
-    "Работа с пользователями"
+    """Получение данных о пользователях, изменение пароля"""
     queryset = CustomUser.objects.all()
-    serializer_class = CustomUserSerializer
     pagination_class = CustomPagination
+    permission_classes = [AllowAny]
 
     def get_permissions(self):
         if self.action == 'retrieve':
-            permission_classes = [IsAuthenticated]
+            self.permission_classes = [IsAuthenticated]
+        return super().get_permissions()
+
+    def get_serializer_class(self):
+        if self.action in ('list', 'retrieve'):
+            return CustomUserSerializer
         else:
-            permission_classes = [AllowAny]
-        return [permission() for permission in permission_classes]
+            return CustomUserCreateSerializer
 
     @action(methods=['get'], detail=False,
             permission_classes=(IsAuthenticated,))
@@ -51,7 +52,8 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             {"detail": "Authentication credentials were not provided."},
             status=status.HTTP_401_UNAUTHORIZED)
 
-    @action(methods=['post'], detail=False)
+    @action(methods=['post'], detail=False,
+            permission_classes=(IsAuthenticated,))
     def set_password(self, request):
         serializer = SetPasswordSerializer(data=request.data,
                                            context={'request': request})
@@ -60,3 +62,41 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         self.request.user.set_password(serializer.data["new_password"])
         self.request.user.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class TagViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
+    permission_classes = [AllowAny]
+
+
+class RecipeViewSet(viewsets.ModelViewSet):
+    queryset = Recipe.objects.all()
+    serializer_class = RecipeSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    pagination_class = CustomPagination
+    filter_backends = (DjangoFilterBackend, )
+    filterset_class = RecipeFilter
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+
+    def perform_update(self, serializer):
+        serializer.save(author=self.request.user)
+
+    def get_serializer_class(self):
+        if self.action in ('list', 'retrieve'):
+            return RecipeSerializer
+        else:
+            return RecipeCreateSerializer
+
+    def get_permissions(self):
+        if self.action in ('update', 'partial_update', 'destroy'):
+            self.permission_classes = [AuthorOrReadOnly]
+        return super().get_permissions()
+
+
+class IgredientViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Ingredient.objects.all()
+    serializer_class = IngredientSerializer
+    permission_classes = [AllowAny]
