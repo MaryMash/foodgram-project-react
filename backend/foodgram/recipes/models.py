@@ -173,3 +173,71 @@ class RecipeIngredient(models.Model):
 
     def __str__(self) -> str:
         return f'{self.recipe} {self.ingredient}'
+
+
+class ShoppingList(models.Model):
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='list',
+        verbose_name='Рецепт',
+        help_text='Рецепт в списке покупок'
+    )
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='list',
+        verbose_name='Пользователь',
+        help_text='Владелец списка'
+    )
+    date_created = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Дата создания',
+        help_text='Дата создания списка'
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['recipe', 'user'],
+                name='shopping_list_recipe_user_unique'
+            )
+
+        ]
+
+    def __str__(self) -> str:
+        return f'{self.recipe} {self.user}'
+
+
+class Favourite(models.Model):
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='favourites',
+        verbose_name='Избранное',
+        help_text='Избранные рецепты'
+    )
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='favourites',
+        verbose_name='Пользователь',
+        help_text='Имя пользователя'
+    )
+    date_added = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Дата добавления',
+        help_text='Дата добавления в избранное'
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['recipe', 'user'],
+                name='favourite_recipe_user_unique'
+            )
+
+        ]
+
+    def __str__(self) -> str:
+        return f'{self.recipe} {self.user}'
