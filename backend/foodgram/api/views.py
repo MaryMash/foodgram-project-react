@@ -3,30 +3,22 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.serializers import SetPasswordSerializer
-from rest_framework import status, viewsets
+from recipes.models import (Favourite, Ingredient, Recipe, RecipeIngredient,
+                            ShoppingList, Tag)
+from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import (AllowAny, IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
-
-from recipes.models import (Favourite, Ingredient, Recipe, RecipeIngredient,
-                            ShoppingList, Tag)
 from users.models import CustomUser, Subscription
 
 from .filters import RecipeFilter
 from .paginators import CustomPagination
 from .permissions import AuthorOrReadOnly
-from .serializers import (CreateRecipeIngredientSerializer,
-                          CustomUserCreateSerializer, CustomUserSerializer,
+from .serializers import (CustomUserCreateSerializer, CustomUserSerializer,
                           IngredientSerializer, RecipeCreateSerializer,
                           RecipeSerializer, RecipeShoppingFavouriteSerializer,
                           SubscriptionsSerializer, TagSerializer)
-
-
-class TestView(viewsets.ModelViewSet):
-    queryset = Recipe.objects.all()
-    permission_classes = [AllowAny]
-    serializer_class = CreateRecipeIngredientSerializer
 
 
 class CustomUserViewSet(viewsets.ModelViewSet):
@@ -53,6 +45,8 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         if user.is_authenticated:
             serializer = self.get_serializer(user,
                                              context={'request': request})
+            serializer = CustomUserSerializer(user,
+                                              context={'request': request})
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(
             {"detail": "Authentication credentials were not provided."},
@@ -121,6 +115,19 @@ class RecipeViewSet(viewsets.ModelViewSet):
     pagination_class = CustomPagination
     filter_backends = (DjangoFilterBackend, )
     filterset_class = RecipeFilter
+
+    def get_queryset(self):
+        queryset = Recipe.objects.all()
+        if self.request.user.is_anonymous:
+            return queryset
+        is_favorited = self.request.query_params.get('is_favorited')
+        is_in_shopping_cart = self.request.query_params.get(
+            'is_in_shopping_cart')
+        if is_favorited == '1':
+            queryset = queryset.filter(favourites__user=self.request.user)
+        if is_in_shopping_cart == '1':
+            queryset = queryset.filter(list__user=self.request.user)
+        return queryset
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
@@ -216,9 +223,5 @@ class IgredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     permission_classes = [AllowAny]
-
-
-# class ShoppingListViewSet(viewsets.ModelViewSet):
-#     queryset = Recipe.objects.all()
-#     serializer_class = ShoppingListSerializer
-#     permission_classes = [IsAuthenticated]
+    filter_backends = (filters.SearchFilter, )
+    search_fields = ('^name',)
