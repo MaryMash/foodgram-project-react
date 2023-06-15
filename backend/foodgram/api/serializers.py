@@ -1,10 +1,11 @@
 import base64
 
 from django.core.files.base import ContentFile
+from django.db import transaction
 from djoser.serializers import UserCreateSerializer, UserSerializer
-from recipes.models import (Favourite, Ingredient, Recipe, RecipeIngredient,
-                            ShoppingList, Tag)
 from rest_framework import serializers
+
+from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag
 from users.models import CustomUser, Subscription
 
 
@@ -62,15 +63,6 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'measurement_unit', 'amount')
 
 
-# class RepresentRecipeIngredientSerializer(serializers.ModelSerializer):
-#     """Получение списка ингредиентов при создании рецпта"""
-#     id = serializers.ReadOnlyField(source='ingredient.id')
-
-#     class Meta:
-#         model = RecipeIngredient
-#         fields = ('id', 'amount')
-
-
 class CreateRecipeIngredientSerializer(serializers.ModelSerializer):
     "Список ингредиентов для создания рецепта"
     id = serializers.IntegerField()
@@ -100,16 +92,18 @@ class RecipeSerializer(serializers.ModelSerializer):
     image = Base64ImageField(required=False, allow_null=True)
 
     def get_is_favorited(self, obj):
-        if self.context['request'].user.is_anonymous:
+        user = self.context['request'].user
+        try:
+            return user.favourites.filter(recipe=obj).exists()
+        except AttributeError:
             return False
-        return Favourite.objects.filter(user=self.context['request'].user,
-                                        recipe=obj).exists()
 
     def get_is_in_shopping_cart(self, obj):
-        if self.context['request'].user.is_anonymous:
+        user = self.context['request'].user
+        try:
+            return user.list.filter(recipe=obj).exists()
+        except AttributeError:
             return False
-        return ShoppingList.objects.filter(user=self.context['request'].user,
-                                           recipe=obj).exists()
 
     class Meta:
         model = Recipe
@@ -129,14 +123,16 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         fields = ('id', 'tags', 'author', 'ingredients', 'name', 'image',
                   'text', 'cooking_time')
 
-    def validate(self, data):
+    def validate_ingredients(self, data):
         ingredients = []
-        for ingredient in data.get('ingredients'):
+        for ingredient in data:
             if ingredient in ingredients:
                 raise serializers.ValidationError(
                     'Нельзя указывать один ингредиент дважды.')
             ingredients.append(ingredient)
+        return data
 
+    @transaction.atomic
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
@@ -151,6 +147,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
             )
         return instance
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         instance.image = validated_data.get('image', instance.image)
         instance.name = validated_data.get('name', instance.name)
@@ -173,13 +170,6 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
             )
         instance.save()
         return instance
-
-    def to_representation(self, instance):
-        representation = RecipeSerializer(instance, context=self.context).data
-        # ingredients = RecipeIngredient.objects.filter(recipe=instance)
-        # representation['ingredients'] = RepresentRecipeIngredientSerializer(
-        #     ingredients, many=True).data
-        return representation
 
 
 class RecipeShoppingFavouriteSerializer(serializers.ModelSerializer):
