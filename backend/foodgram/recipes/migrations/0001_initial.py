@@ -2,9 +2,10 @@
 
 import re
 
-import core.validators
 import django.core.validators
 from django.db import migrations, models
+
+import core.validators
 
 
 class Migration(migrations.Migration):

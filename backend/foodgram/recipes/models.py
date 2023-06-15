@@ -1,6 +1,7 @@
-from core.validators import hex_validator
 from django.core.validators import MinValueValidator, validate_slug
 from django.db import models
+
+from core.validators import hex_validator
 from users.models import CustomUser
 
 

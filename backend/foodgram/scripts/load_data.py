@@ -19,10 +19,3 @@ def run():
 
 if __name__ == "__main__":
     run()
-
-
-with open(f'{PROJECT_DIR}/data/ingredients.csv') as file:
-        reader = csv.reader(file)
-        for row in reader:
-             print(row)
-             break
