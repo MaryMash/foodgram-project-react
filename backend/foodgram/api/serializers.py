@@ -171,6 +171,10 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+    def to_representation(self, instance):
+        representation = RecipeSerializer(instance, context=self.context).data
+        return representation
+
 
 class RecipeShoppingFavouriteSerializer(serializers.ModelSerializer):
     "Добавление в список покупок и избранное"
