@@ -10,10 +10,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveConstraint(
-            model_name='subscription',
-            name='%(app_label)s_%(class)s_user_author_unique',
-        ),
         migrations.AddConstraint(
             model_name='subscription',
             constraint=models.UniqueConstraint(fields=('author', 'user'), name='users_subscription_user_author_unique'),

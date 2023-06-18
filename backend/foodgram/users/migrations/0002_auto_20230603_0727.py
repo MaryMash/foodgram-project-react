@@ -27,10 +27,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='subscription',
-            constraint=models.UniqueConstraint(fields=('author', 'user'), name='%(app_label)s_%(class)s_user_author_unique'),
-        ),
-        migrations.AddConstraint(
-            model_name='subscription',
             constraint=models.CheckConstraint(check=models.Q(_negated=True, author=django.db.models.expressions.F('user')), name='self_subscription_not_allowed'),
         ),
     ]
