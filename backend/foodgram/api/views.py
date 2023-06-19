@@ -3,14 +3,13 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.serializers import SetPasswordSerializer
+from recipes.models import (Favourite, Ingredient, Recipe, RecipeIngredient,
+                            ShoppingList, Tag)
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import (AllowAny, IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
-
-from recipes.models import (Favourite, Ingredient, Recipe, RecipeIngredient,
-                            ShoppingList, Tag)
 from users.models import CustomUser, Subscription
 
 from .constants import TRUE_FILTER
@@ -158,10 +157,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if ShoppingList.objects.filter(recipe=recipe,
                                        user=request.user).exists():
             return Response(
-                    {'errors': 'Рецепт уже добавлен в список покупок'},
-                    status=status.HTTP_400_BAD_REQUEST)
+                {'errors': 'Рецепт уже добавлен в список покупок'},
+                status=status.HTTP_400_BAD_REQUEST)
         serializer = RecipeShoppingFavouriteSerializer(
-                recipe, data=request.data, context={'request': request})
+            recipe, data=request.data, context={'request': request})
         if serializer.is_valid():
             ShoppingList.objects.create(recipe=recipe, user=request.user)
             return Response(serializer.data,
@@ -187,7 +186,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                        .filter(recipe__list__user=request.user)
                        .values('ingredient').annotate(total=Sum('amount'))
                        .values_list('ingredient__name',
-                                    'ingredient__measurement_unit',  'total'))
+                                    'ingredient__measurement_unit', 'total'))
         data = []
         for ingredient in ingredients:
             data.append('{} ({}) - {}'.format(*ingredient))
@@ -207,7 +206,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return Response({'errors': 'Рецепт уже добавлен в избранное'},
                             status=status.HTTP_400_BAD_REQUEST)
         serializer = RecipeShoppingFavouriteSerializer(
-                    recipe, data=request.data, context={'request': request})
+            recipe, data=request.data, context={'request': request})
         if serializer.is_valid():
             Favourite.objects.create(recipe=recipe, user=request.user)
             return Response(serializer.data,
