@@ -65,9 +65,10 @@ docker cp fixtures.json infra_backend_1:app/
 docker-compose exec backend python manage.py loaddata fixtures.json
 ```
 ## Данные для подключения:
-Сайт доступен по адресу http://localhost/
-Админка: http://localhost/admin/
-Документация: http://localhost/api/docs/
+- Сайт доступен по адресу http://localhost/
+- Админка: http://localhost/admin/
+- Документация: http://localhost/api/docs/
+
 Данные администратора: 
 - логин: admin
 - email: admin@test.ru
