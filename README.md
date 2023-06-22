@@ -64,12 +64,11 @@ docker cp fixtures.json infra_backend_1:app/
 ```
 docker-compose exec backend python manage.py loaddata fixtures.json
 ```
+* Создать пользователя с доступом администратора
+```
+docker-compose exec web python manage.py createsuperuser
+```
 ## Данные для подключения:
 - Сайт доступен по адресу http://localhost/
 - Админка: http://localhost/admin/
 - Документация: http://localhost/api/docs/
-
-Данные администратора: 
-- логин: admin
-- email: admin@test.ru
-- пароль: apian12345
