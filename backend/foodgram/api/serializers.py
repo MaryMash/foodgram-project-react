@@ -70,6 +70,16 @@ class CreateRecipeIngredientSerializer(serializers.ModelSerializer):
         model = RecipeIngredient
         fields = ('id', 'amount')
 
+    def to_representation(self, instance):
+        amount = RecipeIngredient.objects.get(
+            recipe__name=self.context['request'].data['name'],
+            recipe__author=self.context['request'].user,
+            ingredient=instance).amount
+        representation = {'id': instance.id, 'name': instance.name,
+                          'measurement_unit': instance.measurement_unit,
+                          'amount': amount}
+        return representation
+
 
 class Base64ImageField(serializers.ImageField):
     def to_internal_value(self, data):
@@ -169,10 +179,6 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
             )
         instance.save()
         return instance
-
-    def to_representation(self, instance):
-        representation = RecipeSerializer(instance, context=self.context).data
-        return representation
 
 
 class RecipeShoppingFavouriteSerializer(serializers.ModelSerializer):

@@ -3,7 +3,7 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.serializers import SetPasswordSerializer
-from recipes.models import (Favourite, Ingredient, Recipe, RecipeIngredient,
+from recipes.models import (Favourite, Ingredient, Recipe,
                             ShoppingList, Tag)
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
@@ -182,11 +182,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(methods=['get'], detail=False,
             permission_classes=(IsAuthenticated,))
     def download_shopping_cart(self, request):
-        ingredients = (RecipeIngredient.objects
-                       .filter(recipe__list__user=request.user)
-                       .values('ingredient').annotate(total=Sum('amount'))
-                       .values_list('ingredient__name',
-                                    'ingredient__measurement_unit', 'total'))
+        ingredients = (Ingredient.objects
+                       .filter(recipe__recipe__list__user=request.user)
+                       .values('name').annotate(total=Sum('recipe__amount'))
+                       .values_list('name', 'measurement_unit', 'total'))
+
         data = []
         for ingredient in ingredients:
             data.append('{} ({}) - {}'.format(*ingredient))
